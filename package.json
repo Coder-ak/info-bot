@@ -1,0 +1,32 @@
+{
+  "name": "info-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch",
+    "start": "pm2 start ecosystem.config.cjs --env production"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "franc-min": "^6.2.0",
+    "helmet": "^8.1.0",
+    "natural": "^8.1.0",
+    "stopword": "^3.1.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.9.2",
+    "@types/stopword": "^2.0.3",
+    "esbuild": "^0.25.11",
+    "esbuild-clean-plugin": "^2.0.0",
+    "eslint": "^9.38.0",
+    "glob": "^11.0.3",
+    "typescript": "^5.9.3"
+  }
+}
