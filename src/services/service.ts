@@ -43,12 +43,12 @@ export function getResult(query: string): ScriptResult {
 
   const bestLabel = scores.sort((a, b) => b.score - a.score)[0];
 
-  console.log('RESULT:', { lang, query, tokens, scores });
+  console.log('INFO-BOT-SERVER:', { lang, query, tokens, scores });
 
   if (!bestLabel || bestLabel?.score === 0) {
     return {
       message:
-        'Вибачте, але я не знайшов інформацію по вашому запиту.\n\nСпробуйте  щось на кшталт: <i>диспетчер, сантехнік, аптека...</i>',
+        'Вибачте, але я не знайшов інформацію по вашому запиту.\n\nСпробуйте  щось на кшталт: <code>диспетчер</code>, <code>сантехнік</code>, <code>аптека</code>, <code>допомога</code>...',
       type: MessageType.TEXT,
     };
   }
@@ -66,7 +66,7 @@ function loadAndTrain() {
   try {
     const raw = fs.readFileSync(
       path.resolve(process.cwd(), DATA_PATH),
-      'utf-8'
+      'utf-8',
     );
     data = JSON.parse(raw) as DataEntry[];
   } catch (err) {

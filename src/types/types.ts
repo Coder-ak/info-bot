@@ -1,4 +1,4 @@
-import { MessageType } from "../enums/enums.js";
+import { MessageType } from '../enums/enums.js';
 
 export interface DataEntry {
   keywords: string;
