@@ -43,7 +43,12 @@ export function getResult(query: string): ScriptResult {
 
   const bestLabel = scores.sort((a, b) => b.score - a.score)[0];
 
-  console.log('INFO-BOT-SERVER:', { lang, query, tokens, scores });
+  console.log('↓INFO-BOT-SERVER:', {
+    lang,
+    query,
+    tokens,
+    scores: scores.slice(0, 3),
+  });
 
   if (!bestLabel || bestLabel?.score === 0) {
     return {
