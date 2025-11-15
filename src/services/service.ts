@@ -54,6 +54,10 @@ export function getResult(query: string): ScriptResult {
     return {
       message:
         'Вибачте, але я не знайшов інформацію по вашому запиту.\n\nСпробуйте  щось на кшталт: <code>диспетчер</code>, <code>сантехнік</code>, <code>аптека</code>, <code>допомога</code>...',
+      inlineKeyboard: [
+        [{ text: '⚡️ Світло є?', callback_data: '/light' }],
+        [{ text: '📆 Графік вимкнень', callback_data: '/schedule' }],
+      ],
       type: MessageType.TEXT,
     };
   }
@@ -61,6 +65,7 @@ export function getResult(query: string): ScriptResult {
   return {
     message: infoData[bestLabel.id].message,
     caption: infoData[bestLabel.id].caption,
+    inlineKeyboard: infoData[bestLabel.id].inlineKeyboard,
     type: infoData[bestLabel.id].type,
     score: bestLabel.score,
     label: bestLabel.id,
@@ -85,6 +90,7 @@ function loadAndTrain() {
     infoData[label] = {
       message: doc.message,
       caption: doc.caption,
+      inlineKeyboard: doc.inlineKeyboard,
       type: doc.type || MessageType.TEXT,
     };
 
