@@ -8,6 +8,7 @@ import { removeStopwords, rus, ukr } from 'stopword';
 
 import { DataEntry, ScriptResult } from '../types/types.js';
 import { LANGS, CUSTOM_STOP_WORDS, MessageType } from '../enums/enums.js';
+import { queryOllama } from './ollama.js';
 
 const DATA_PATH = process.env.DATA_PATH ?? 'data/data.json';
 
@@ -15,7 +16,7 @@ let data: DataEntry[] = [];
 let infoData: Record<string, ScriptResult> = {};
 let tfidf: TfIdf;
 
-export function getResult(query: string): ScriptResult {
+export async function getResult(query: string): Promise<ScriptResult> {
   const ukrRegex = /[ієґ]/i;
   let lang = ukrRegex.test(query)
     ? LANGS.UK
@@ -44,22 +45,36 @@ export function getResult(query: string): ScriptResult {
   const bestLabel = scores.sort((a, b) => b.score - a.score)[0];
 
   console.log('↓INFO-BOT-SERVER:', {
-    lang,
-    query,
     tokens,
-    scores: scores.slice(0, 3),
+    scores: scores.slice(0, 2),
   });
 
   if (!bestLabel || bestLabel?.score === 0) {
-    return {
-      message:
-        'Вибачте, але я не знайшов інформацію по вашому запиту.\nМожливо цей запит буде добавлено пізніше.\n\nСпробуйте  щось на кшталт: <code>диспетчер</code>, <code>сантехнік</code>, <code>аптека</code>, <code>допомога</code>...',
-      inlineKeyboard: [
-        [{ text: '⚡️ Світло є?', callback_data: '/light' }],
-        [{ text: '📆 Графік вимкнень', callback_data: '/schedule' }],
-      ],
-      type: MessageType.TEXT,
-    };
+    try {
+      const message = await queryOllama(query);
+      console.log('↓OLLAMA-RESPONSE:', {
+        message,
+      });
+      return {
+        message,
+        type: MessageType.TEXT,
+      };
+    } catch (err) {
+      console.error('Ollama query failed:', err);
+
+      return {
+        message:
+          'Вибачте, але я не знайшов інформацію по вашому запиту.\nМожливо цей запит буде добавлено пізніше.\n\nСпробуйте  щось на кшталт: <code>диспетчер</code>, <code>сантехнік</code>, <code>аптека</code>, <code>допомога</code>...',
+        inlineKeyboard: [
+          [
+            { text: '⚡️ Світло', callback_data: '/light' },
+            { text: '📆 Графік', callback_data: '/schedule' },
+          ],
+          // [{ text: '📆 Графік вимкнень', callback_data: '/schedule' }],
+        ],
+        type: MessageType.TEXT,
+      };
+    }
   }
 
   return {
