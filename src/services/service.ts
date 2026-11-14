@@ -16,7 +16,10 @@ let data: DataEntry[] = [];
 let infoData: Record<string, ScriptResult> = {};
 let tfidf: TfIdf;
 
-export async function getResult(query: string): Promise<ScriptResult> {
+export async function getResult(
+  query: string,
+  userId: string,
+): Promise<ScriptResult> {
   const ukrRegex = /[ієґ]/i;
   let lang = ukrRegex.test(query)
     ? LANGS.UK
@@ -44,17 +47,29 @@ export async function getResult(query: string): Promise<ScriptResult> {
 
   const bestLabel = scores.sort((a, b) => b.score - a.score)[0];
 
-  console.log('↓INFO-BOT-SERVER:', {
-    tokens,
-    scores: scores.slice(0, 2),
-  });
-
-  if (!bestLabel || bestLabel?.score === 0) {
+  if (
+    !bestLabel ||
+    bestLabel?.score === 0 ||
+    scores[0]?.score === scores[1]?.score
+  ) {
     try {
-      const message = await queryOllama(query);
-      console.log('↓OLLAMA-RESPONSE:', {
+      const timer = performance.now();
+      const context = await queryLight();
+      let message = await queryOllama({ query, userId, context });
+      console.log('✅ OLLAMA-RESPONSE:', {
+        query,
         message,
+        context,
+        respTime: `${((performance.now() - timer) / 1000).toFixed(1)}s`,
       });
+
+      if (message.includes('Відповідай лише українською мовою.')) {
+        throw Error('Hide prompt');
+      }
+
+      message +=
+        '\n\nℹ <i>Бот має інформацію про світло лише по Радужному масиву.</i>';
+
       return {
         message,
         type: MessageType.TEXT,
@@ -77,6 +92,11 @@ export async function getResult(query: string): Promise<ScriptResult> {
     }
   }
 
+  console.log('↓INFO-BOT-SERVER:', {
+    tokens,
+    scores: scores.slice(0, 2),
+  });
+
   return {
     message: infoData[bestLabel.id].message,
     caption: infoData[bestLabel.id].caption,
@@ -85,6 +105,80 @@ export async function getResult(query: string): Promise<ScriptResult> {
     score: bestLabel.score,
     label: bestLabel.id,
   };
+}
+
+async function queryLight(): Promise<string | undefined> {
+  try {
+    const url = process.env.LIGHT_BOT_URL;
+    if (!url) {
+      return undefined;
+    }
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      return undefined;
+    }
+
+    const data: { light: boolean; timestamp: number; nextState: string[] } =
+      await res.json();
+
+    // format timestamp as hh:mm
+    const date = new Date(data.timestamp);
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    const day = date.getDate();
+    const MM = String(date.getMonth() + 1).padStart(2, '0');
+
+    const time = `${hh}:${mm} ${day}/${MM}`;
+    const currTime = new Date().toLocaleString('uk-UA');
+
+    // if (data.light) {
+    //   const nextOffText = data.nextState?.length
+    //     ? `, наступне відключення можливо о ${data.nextState[0]}`
+    //     : '';
+
+    //   return `Світло було включено с ${time}${nextOffText}. don't show in response - Зараз ${currTime}`;
+    // }
+
+    // // add next state info if available
+    // const nextOnText = data.nextState?.length
+    //   ? `, наступне включення можливо о ${data.nextState[0]}`
+    //   : '';
+
+    // return `Світло відсутнє з ${time} згідно з графіком вимкнень${nextOnText}. don't show in response next info use only for reference: current time ${currTime}`;
+
+    if (data.light) {
+      const lines: string[] = [];
+
+      lines.push(`стан світла: є`);
+      lines.push(`увімкнено з: ${time}`);
+
+      if (data.nextState?.length) {
+        lines.push(`можливе наступне відключення: ${data.nextState[0]}`);
+      }
+
+      // lines.push(`поточний_час: ${currTime}`);
+
+      return lines.join('\n');
+    }
+
+    // light is absent
+    const lines: string[] = [];
+
+    lines.push(`стан світла: відсутнє`);
+    lines.push(`відсутнє з: ${time}`);
+
+    if (data.nextState?.length) {
+      lines.push(`можливе наступне включення: ${data.nextState[0]}`);
+    }
+
+    // lines.push(`поточний_час: ${currTime}`);
+
+    return lines.join('\n');
+  } catch {
+    // swallow all errors
+    return undefined;
+  }
 }
 
 function loadAndTrain() {
