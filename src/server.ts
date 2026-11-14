@@ -36,7 +36,7 @@ app.get('/api/health', (_req, res) => {
 
 // Query endpoint
 app.post('/api/classify', async (req, res) => {
-  const { query } = req.body ?? {};
+  const { query, userId } = req.body ?? {};
 
   if (typeof query === 'undefined') {
     return res.status(400).json({ error: 'Missing query parameter' });
@@ -48,7 +48,7 @@ app.post('/api/classify', async (req, res) => {
     return res.status(400).json({ error: 'Query cannot be empty' });
   }
 
-  const result = await getResult(query);
+  const result = await getResult(query, userId);
   res.json(result);
 });
 
